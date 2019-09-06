@@ -1,10 +1,26 @@
-{%  extends "template.html" %}
+{% extends "template.html" %}
+
+{% block javascript %} 
+<script>
+    // document.addEventListener('DOMContentLoaded', function() {
+    //     document.querySelector('#join').onclick =  join;
+    // });
+
+    // function join() {
+    //     alert('Button has been clicked')
+    // }
+</script>
+{% endblock %}
 
 {% block title %} Join {% endblock %}
-
 {% block content %}
-<h3>Join</h3>
-<from>
-    <input type="text" name="username">
-</from> 
+<form action="{{ url_for('index')}}" method="POST">
+    <div class="col-3 form-group">
+        <label class="form-label">Username</label>
+        <input type="text" name="username" class="form-control-plaintext">
+    </div>
+    <div class="col-2">
+        <button type="submit" id="join" class="btn btn-primary mb-2">Join</button>
+    </div>
+</form> 
 {% endblock %}
