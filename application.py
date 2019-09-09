@@ -1,8 +1,9 @@
 import os
 
-from flask import Flask, request, render_template, session, redirect, url_for
+from flask import Flask, request, render_template, session, redirect, url_for,  jsonify
 # from flask_socketio import SocketIO, emit
 from flask_session import Session
+from helper import login_required
 
 app = Flask(__name__)
 app.config.from_envvar('YOURAPPLICATION_SETTINGS')
@@ -11,6 +12,7 @@ app.config.from_envvar('YOURAPPLICATION_SETTINGS')
 
 #GLOBAL VARIABLES
 user_list = []
+messages = {"general": [], "Flask": [], "Fronted": [], "CLI": [], "Random": []}
 
 @app.route("/", methods=['GET', 'POST'])
 def index():
@@ -22,6 +24,9 @@ def index():
             if  username == user:
                 return "Username is already in use. Try another username!"
         
+        if username == None:
+            return "Username is empty. Try again."
+        
         user_list.append(username)
         session['username'] = username
         return redirect(url_for("chat"))
@@ -29,8 +34,24 @@ def index():
     return render_template("login.html")
 
 @app.route("/chat", methods=['GET', 'POST'])
+@login_required
 def chat():
-    return Chatroom
+    if request.method == 'POST':
+        channel = request.form.get('channel')
+        messages[channel] = []
+
+        return jsonify({"channel": channel})
+
+    return render_template('chat.html', username=session['username'], channels=messages.keys())
+
+@app.route("/leave")
+def leave():
+    user_list.pop(user_list.index(session['username']))
+    session.clear()
+    return redirect(url_for('index'))
+
+
+
 
 """ TODO
 #0 Create basic HTML template
@@ -41,24 +62,23 @@ def chat():
     Check user list
     Add username to session
     If not available, store user name
+    Add helper and login required decorator
     Render chat page
-    Add login required decorator
+    - Add leave button
 
-#0.7 Global varariables
+#1.5 Global varariables
     - user list
     - current user
     - messages
 
-#.8 Watch Local Storage 
-
 #2 Render channels/chat page
-    - Setup dummy channel and message data
+    - Setup dummy channel 
     - Pull channles from messages using Jinja
     - Add create channel button
-    - Add leave button
-    - Call Ajac to get messages from a channel
+    - Call Ajax to get messages from a channel
 
 #3 Render messages from a channel
+    - set dummy message data
     - Pass channel name to AJAX route
     - AJAX call to messages dictoionary
 

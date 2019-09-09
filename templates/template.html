@@ -9,9 +9,9 @@
     <body>
         <nav class="navbar sticky-top navbar-light bg-light">
             <span class="navbar-brand mb-0 h1" href="#">Flack</span>
-            <a class="nav-link" href="#">Leave</a>
+            <a class="nav-link" href="{{url_for('leave')}}">Leave</a>
         </nav>
-        <div class="body">
+        <div class="container" id="body">
             {% block content %} {% endblock %}
         </div>
     </body>

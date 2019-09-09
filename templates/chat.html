@@ -1,0 +1,69 @@
+{% extends "template.html" %}
+
+{% block javascript %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelector('#add').onclick = () => {
+
+            // open a AJAX request
+            const request = new XMLHttpRequest();
+            const channel  = document.querySelector('#channel').value;
+            request.open("POST", "/chat");
+            
+            alert(`Button has been clicked ${channel}`)
+
+            // when request is recieved from server-side, laod and append data
+            request.onload = () => {
+                const data  =  JSON.parse(request.responseText);
+                    var li_node = document.createElement('li');
+                    var li_value =document.createTextNode(data.channel);
+                    li_node.appendChild(li_value);
+                    document.querySelector('ul').appendChild(li_node);
+            }
+            
+            //send data to Flask route to store new channel server-side
+            const data  = new FormData();
+            data.append('channel', channel);
+            request.send(data);
+            return false;
+        };
+    });
+</script>
+{% endblock %}
+
+{% block title %} Chat {% endblock %}
+
+{% block content %}
+<div class="row justify-content-md-center">
+    <div class="col">
+        <h3>Channels</h3>
+        <h5>{{username}}</h5>
+        <ul>
+            {% for channel in channels %}
+            <li>{{channel}}</li>
+            {% endfor %}
+        </ul>
+        <form id="form">
+            <div class="form-group col-8">
+                <input type=text id="channel" placeholder="Add new channel" class="form-control-plaintext">
+                <input type="submit" id="add" value="Add" class="btn btn-primary mb-2">
+            </div>
+        </form>
+        
+    </div>
+    <div class="col-8">
+        <h3>Messages</h3>
+    </div>
+</div>
+
+
+<!-- <form action="{{ url_for('index')}}" method="POST">
+    <div class="col-3 form-group">
+        <label class="form-label">Username</label>
+        <input type="text" name="username" class="form-control-plaintext">
+    </div>
+    <div class="col-2">
+        <button type="submit" id="join" class="btn btn-primary mb-2">Join</button>
+    </div>
+</form>  -->
+{% endblock %}

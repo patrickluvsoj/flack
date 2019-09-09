@@ -2,25 +2,27 @@
 
 {% block javascript %} 
 <script>
-    // document.addEventListener('DOMContentLoaded', function() {
-    //     document.querySelector('#join').onclick =  join;
-    // });
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelector('#join').onclick = join;
+    });
 
-    // function join() {
-    //     alert('Button has been clicked')
-    // }
+    function join() {
+        alert('Button has been clicked')
+    }
 </script>
 {% endblock %}
 
 {% block title %} Join {% endblock %}
 {% block content %}
-<form action="{{ url_for('index')}}" method="POST">
-    <div class="col-3 form-group">
+<div class="row justify-content-md-center">
+    <form action="{{ url_for('index')}}" method="POST">
+    <div class="form-group">
         <label class="form-label">Username</label>
-        <input type="text" name="username" class="form-control-plaintext">
+        <input type="text" autofocus name="username" class="form-control-plaintext">
     </div>
-    <div class="col-2">
+    <div>
         <button type="submit" id="join" class="btn btn-primary mb-2">Join</button>
     </div>
-</form> 
+    </form> 
+</div>
 {% endblock %}
