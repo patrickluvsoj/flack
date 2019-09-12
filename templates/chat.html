@@ -3,31 +3,105 @@
 {% block javascript %}
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        document.querySelector('#add').onclick = () => {
+        
+        // check if current channel is storad in localStorage 
+        var curr_chnnl = localStorage.getItem('current_channel');
+        if (curr_chnnl != null) {
+            // set channel optino to current_channel
+            document.querySelector('#channels').value = curr_chnnl;
+        };
 
+        // Listening for form submission for addding new channel
+        document.querySelector('#add').onclick = () => {
             // open a AJAX request
             const request = new XMLHttpRequest();
             const channel  = document.querySelector('#channel').value;
             request.open("POST", "/chat");
-            
-            alert(`Button has been clicked ${channel}`)
 
             // when request is recieved from server-side, laod and append data
             request.onload = () => {
                 const data  =  JSON.parse(request.responseText);
-                    var li_node = document.createElement('li');
-                    var li_value =document.createTextNode(data.channel);
-                    li_node.appendChild(li_value);
-                    document.querySelector('ul').appendChild(li_node);
+                    var option = document.createElement('option');
+                    option.text = (data.channel);
+                    option.value = (data.channel);
+                    document.querySelector('#channels').add(option);
+                // TODO detect duplicate channels  / prevent empty submissions
             }
-            
             //send data to Flask route to store new channel server-side
-            const data  = new FormData();
+            const data  = new FormData();   
             data.append('channel', channel);
             request.send(data);
             return false;
         };
+        
+        // Listen to input changes
+        document.addEventListener('input', function(event){
+        
+             // Check if it was a change in select options
+            if (event.target.id !== 'channels') return;
+
+            // Open a AJAX request to messages route
+            const request = new XMLHttpRequest();
+            
+            // Get select option value and store in local storage
+            const channel = event.target.value;
+            localStorage.setItem('current_channel', channel);
+
+            request.open("POST", "/messages");
+            
+            // Listen to AJAX request load
+            request.onload = () => {
+                // Parse response to JSON object
+                const messages = JSON.parse(request.responseText);
+
+                // Parse array of messages and append as list item
+                for (message of messages) {
+                    var msg = `${message[2]} | ${message[0]}:\n ${message[1]}`;
+                    var li = document.createElement('li');
+                    li.appendChild(document.createTextNode(msg));
+                    li.className = 'list-group-item';
+                    document.querySelector('#messages').appendChild(li);
+                };
+            };
+            
+            // Submitting form data 
+            const data  = new FormData();   
+            data.append('channel', channel);
+            request.send(data);
+            return false;
+        });
+
+        var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
+
+        // socket.on('connect', () => {
+        //     document.querySelector('#send').onclick = () => {
+        //         alert('message being submitted to server')
+        //         var msg = document.querySelector('#message').value;
+
+        //         // need to pass channel data
+        //         socket.emit('send msg', {'msg': msg});
+        //     };
+        // });
+        
+        document.querySelector('#send').onclick = () => {
+                alert('message being submitted to server')
+                var msg = document.querySelector('#message').value;
+
+                // need to pass channel data
+                socket.emit('send msg', {'msg': msg});
+        };
+        
+        socket.on('broadcast msg', data => {
+            
+            // have a conditional to check if channel matches
+            var msg = data.msg;
+            var li = document.createElement('li');
+            li.appendChild(document.createTextNode(msg));
+            li.className = 'list-group-item';
+            document.querySelector('#messages').appendChild('li');
+        });
     });
+
 </script>
 {% endblock %}
 
@@ -38,21 +112,33 @@
     <div class="col">
         <h3>Channels</h3>
         <h5>{{username}}</h5>
-        <ul>
+        <select id="channels">
             {% for channel in channels %}
-            <li>{{channel}}</li>
+            <option value={{channel}}>{{channel}}</option>
             {% endfor %}
-        </ul>
+        </select>
         <form id="form">
             <div class="form-group col-8">
                 <input type=text id="channel" placeholder="Add new channel" class="form-control-plaintext">
                 <input type="submit" id="add" value="Add" class="btn btn-primary mb-2">
             </div>
         </form>
-        
     </div>
     <div class="col-8">
-        <h3>Messages</h3>
+        <div class="card">
+            <div class="card-header">
+                Messages
+            </div>
+            <ul class="list-group list-group-flush" id="messages">
+                <!-- Add stuff with AJAX query -->
+            </ul>
+        </div><br>
+        <form>
+            <div class="form-group col-8">
+                <input type='text' id='message' placeholder='say something :)' class="form-control-plaintext">
+                <input type='submit' id='send' value='Send' class='btn btn-primary mb-2'>
+            </div>
+        </form>
     </div>
 </div>
 
