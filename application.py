@@ -1,4 +1,5 @@
 import os
+import datetime
 
 from flask import Flask, request, render_template, session, redirect, url_for, jsonify
 from flask_socketio import SocketIO, emit
@@ -63,14 +64,21 @@ def leave():
 
 @socketio.on("send msg")
 def send(data):
-    print(f'{data["msg"]}')
     msg = data["msg"]
-    # need to stora message to right channel
+    print(msg)
+    
+    # Store message to right channel with timestamp and username
+    time = datetime.datetime.now().time()
+    username = session['username']
+    body = msg[0]
+    curr_chnnl = msg[1]
+    messages[curr_chnnl].append([username, body, time])
+
     emit('broadcast msg', {'msg': msg}, broadcast=True)
 
-if __name__ == '__main__':
-    socketio.run(app)
-    print('app running now')
+# if __name__ == '__main__':
+#     socketio.run(app)
+#     print('app running now')
 
 
 """ TODO
@@ -104,13 +112,14 @@ if __name__ == '__main__':
     - store current channel in local storagee
 
 #4 Socket.io
+    - Need to figure out why button click event not working
     - Store channel name
     - broadcast message submit after button click
     - listen to message submit from backend server
-    - append message to messages dictionary
+    - check message length is less than 100
+        - append message to messages dictionary
     - broadcast message submit from backend server
     - listen  to message submit from frontend
-    - check message ;ength is less than 100
-
+    
 #5 Get API respponse from something
 """

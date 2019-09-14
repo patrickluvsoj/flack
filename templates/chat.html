@@ -5,11 +5,18 @@
     document.addEventListener('DOMContentLoaded', () => {
         
         // check if current channel is storad in localStorage 
+        // If not, set option to general
         var curr_chnnl = localStorage.getItem('current_channel');
         if (curr_chnnl != null) {
             // set channel optino to current_channel
-            document.querySelector('#channels').value = curr_chnnl;
+            alert('setting channel');
+            curr_chnnl = document.querySelector('#channels').value;
+            var channel_list = document.querySelector('#channels');
+            channel_list.value = 'general';
+            alert('channel set')
         };
+
+        //TODO Disable button while form empty
 
         // Listening for form submission for addding new channel
         document.querySelector('#add').onclick = () => {
@@ -35,18 +42,23 @@
         };
         
         // Listen to input changes
-        document.addEventListener('input', function(event){
-        
+        document.addEventListener('input', function(event) {
+
              // Check if it was a change in select options
             if (event.target.id !== 'channels') return;
 
-            // Open a AJAX request to messages route
-            const request = new XMLHttpRequest();
-            
+            // TODO Clear messages in the channel
+            var list = document.querySelector('#messages');
+            while (list.hasChildNodes()) {
+                list.removeChild(list.firstChild);
+            };
+
             // Get select option value and store in local storage
             const channel = event.target.value;
             localStorage.setItem('current_channel', channel);
 
+            // Open a AJAX request to messages route
+            const request = new XMLHttpRequest();
             request.open("POST", "/messages");
             
             // Listen to AJAX request load
@@ -73,35 +85,41 @@
 
         var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
 
-        // socket.on('connect', () => {
-        //     document.querySelector('#send').onclick = () => {
-        //         alert('message being submitted to server')
-        //         var msg = document.querySelector('#message').value;
+        socket.on('connect', () => {
+            
+            //TODO Disable button while form empty
 
-        //         // need to pass channel data
-        //         socket.emit('send msg', {'msg': msg});
-        //     };
-        // });
-        
-        document.querySelector('#send').onclick = () => {
-                alert('message being submitted to server')
+            document.querySelector('#send').onclick = () => {
                 var msg = document.querySelector('#message').value;
 
                 // need to pass channel data
-                socket.emit('send msg', {'msg': msg});
-        };
+                socket.emit('send msg', {'msg': [msg, curr_chnnl] });
+
+                //TODO Clear form
+
+
+                return false;
+            };
+        });
         
         socket.on('broadcast msg', data => {
             
             // have a conditional to check if channel matches
             var msg = data.msg;
-            var li = document.createElement('li');
-            li.appendChild(document.createTextNode(msg));
-            li.className = 'list-group-item';
-            document.querySelector('#messages').appendChild('li');
+
+            if (curr_chnnl === msg[1]){
+                var li = document.createElement('li');
+                
+                // craft message with timestamp  and everything
+                var content = `${msg[2]} | ${msg[0]}:\n ${msg[1]}`;
+
+                li.appendChild(document.createTextNode(content));
+                li.className = 'list-group-item';
+                document.querySelector('#messages').appendChild(li);
+            };
+            
         });
     });
-
 </script>
 {% endblock %}
 
