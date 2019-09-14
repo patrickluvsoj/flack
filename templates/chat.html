@@ -5,14 +5,14 @@
     document.addEventListener('DOMContentLoaded', () => {
         
         // check if current channel is storad in localStorage 
-        // If not, set option to general
+        // If not, set option to general and render messages
         var curr_chnnl = localStorage.getItem('current_channel');
+        
         if (curr_chnnl != null) {
             // set channel optino to current_channel
             alert('setting channel');
             curr_chnnl = document.querySelector('#channels').value;
-            var channel_list = document.querySelector('#channels');
-            channel_list.value = 'general';
+            getMessages(curr_chnnl);
             alert('channel set')
         };
 
@@ -47,40 +47,15 @@
              // Check if it was a change in select options
             if (event.target.id !== 'channels') return;
 
-            // TODO Clear messages in the channel
+            // Clear messages in the channel
             var list = document.querySelector('#messages');
             while (list.hasChildNodes()) {
                 list.removeChild(list.firstChild);
             };
-
-            // Get select option value and store in local storage
+            
+            // Get messages 
             const channel = event.target.value;
-            localStorage.setItem('current_channel', channel);
-
-            // Open a AJAX request to messages route
-            const request = new XMLHttpRequest();
-            request.open("POST", "/messages");
-            
-            // Listen to AJAX request load
-            request.onload = () => {
-                // Parse response to JSON object
-                const messages = JSON.parse(request.responseText);
-
-                // Parse array of messages and append as list item
-                for (message of messages) {
-                    var msg = `${message[2]} | ${message[0]}:\n ${message[1]}`;
-                    var li = document.createElement('li');
-                    li.appendChild(document.createTextNode(msg));
-                    li.className = 'list-group-item';
-                    document.querySelector('#messages').appendChild(li);
-                };
-            };
-            
-            // Submitting form data 
-            const data  = new FormData();   
-            data.append('channel', channel);
-            request.send(data);
-            return false;
+            getMessages(channel);
         });
 
         var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
@@ -97,7 +72,6 @@
 
                 //TODO Clear form
 
-
                 return false;
             };
         });
@@ -106,8 +80,12 @@
             
             // have a conditional to check if channel matches
             var msg = data.msg;
-
-            if (curr_chnnl === msg[1]){
+            alert('receiving  broadcast')
+            alert(`Current channel: ${curr_chnnl}`)
+            
+            // If user is on the same channel as receiving message then load the message
+            if (curr_chnnl === msg[3]){
+                alert('receiving  broadcast')
                 var li = document.createElement('li');
                 
                 // craft message with timestamp  and everything
@@ -120,6 +98,37 @@
             
         });
     });
+
+    function getMessages(channel) {
+        // Get select option value and store in local storage
+        localStorage.setItem('current_channel', channel);
+
+        // Open a AJAX request to messages route
+        const request = new XMLHttpRequest();
+        request.open("POST", "/messages");
+        
+        // Listen to AJAX request load
+        request.onload = () => {
+            // Parse response to JSON object
+            const messages = JSON.parse(request.responseText);
+
+            // Parse array of messages and append as list item
+            for (message of messages) {
+                var msg = `${message[2]} | ${message[0]}:\n ${message[1]}`;
+                var li = document.createElement('li');
+                li.appendChild(document.createTextNode(msg));
+                li.className = 'list-group-item';
+                document.querySelector('#messages').appendChild(li);
+            };
+        };
+        
+        // Submitting form data 
+        const data  = new FormData();   
+        data.append('channel', channel);
+        request.send(data);
+        return false;
+    }
+
 </script>
 {% endblock %}
 

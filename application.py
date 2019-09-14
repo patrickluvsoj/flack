@@ -1,5 +1,5 @@
 import os
-import datetime
+from datetime import datetime
 
 from flask import Flask, request, render_template, session, redirect, url_for, jsonify
 from flask_socketio import SocketIO, emit
@@ -13,7 +13,7 @@ socketio = SocketIO(app)
 
 #GLOBAL VARIABLES
 user_list = []
-messages = {"general": [['patrick', 'hello', '8:45pm'], ['michelle', 'hola', '8:46pm'], ['patrick', 'i wuv u', '9pm']], "Flask": [], "Fronted": [], "CLI": [], "Random": []}
+messages = {"general": [['patrick', 'hello', '8:45pm'], ['michelle', 'hola', '8:46pm'], ['patrick', 'i wuv u', '9pm']], "Flask": [], "Fronted": [], "CLI": [], "Random": [['pat', 'i luv oj', '8:45pm'], ['mich', 'wut?', '8:46pm'], ['pat', 'i wuv u', '9pm']]}
 
 @app.route("/", methods=['GET', 'POST'])
 def index():
@@ -24,6 +24,7 @@ def index():
             if  username == user:
                 return "Username is already in use. Try another username!"
         
+        #TODO do client side disabling
         if username == None:
             return "Username is empty. Try again."
         
@@ -37,6 +38,7 @@ def index():
 @login_required
 def chat():
     if request.method == 'POST':
+        #TODO Should be able to remove this one line
         channel = request.form.get('channel')
         messages[channel] = []
 
@@ -49,36 +51,32 @@ def chat():
 def getmessage():
     if request.method == 'POST':
         channel = request.form.get('channel')
-        message_list = messages.get(channel)
+        message_list = messages[channel]
         print(f'Type is: {type(message_list)}\n {message_list}')
 
         return jsonify(message_list)
 
     return "Does not support GET request"
 
+@socketio.on("send msg")
+def send(data):
+    msg = data["msg"]
+    
+    # Store message to right channel with timestamp and username
+    time = datetime.now().time().strftime("%H:%M %p")
+    username = session['username']
+    body = msg[0]
+    curr_chnnl = msg[1]
+    messages[curr_chnnl].append([username, body, time])
+    broadcast = [username, body, time, curr_chnnl]
+
+    emit('broadcast msg', {'msg': broadcast}, broadcast=True)
+
 @app.route("/leave")
 def leave():
     user_list.pop(user_list.index(session['username']))
     session.clear()
     return redirect(url_for('index'))
-
-@socketio.on("send msg")
-def send(data):
-    msg = data["msg"]
-    print(msg)
-    
-    # Store message to right channel with timestamp and username
-    time = datetime.datetime.now().time()
-    username = session['username']
-    body = msg[0]
-    curr_chnnl = msg[1]
-    messages[curr_chnnl].append([username, body, time])
-
-    emit('broadcast msg', {'msg': msg}, broadcast=True)
-
-# if __name__ == '__main__':
-#     socketio.run(app)
-#     print('app running now')
 
 
 """ TODO
@@ -120,6 +118,13 @@ def send(data):
         - append message to messages dictionary
     - broadcast message submit from backend server
     - listen  to message submit from frontend
+
+#5 Improvements
+    - For initial login load general messages
+        - Factor out message loading to function
+    - New messahes are not loading after switching channels
+    - Prevent new  messages from loading in other channels
+    - Fix datetime not showing / replace channel to username
     
 #5 Get API respponse from something
 """
