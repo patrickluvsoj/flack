@@ -1,28 +1,54 @@
 {% extends "template.html" %}
-
 {% block javascript %}
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        
-        // check if current channel is storad in localStorage 
-        // If not, set option to general and render messages
-        var curr_chnnl = localStorage.getItem('current_channel');
-        
-        if (curr_chnnl != null) {
-            // set channel optino to current_channel
-            alert('setting channel');
-            curr_chnnl = document.querySelector('#channels').value;
-            getMessages(curr_chnnl);
-            alert('channel set')
+        // Set buttons disabled by default. Only enable if form is not empty
+        document.querySelector("#add").disabled = true;
+        document.querySelector("#send").disabled = true;
+
+        document.querySelector("#channel").onkeyup = () => {
+            if (document.querySelector("#channel").value.length > 0) {
+                document.querySelector("#add").disabled = false;
+            }
+            else {
+                document.querySelector("#add").disabled = true;
+            }
         };
 
-        //TODO Disable button while form empty
+        document.querySelector("#message").onkeyup = () => {
+            if (document.querySelector("#message").value.length > 0) {
+                document.querySelector("#send").disabled = false;
+            }
+            else {
+                document.querySelector("#send").disabled = true;
+            }
+        };
+
+        // Get unique username from HTML page
+        var username = document.querySelector("#username").value;
+        
+        // Set user name and channel onload. Get messages.
+        curr_chnnl = document.querySelector('#channels').value;
+        localStorage.setItem(username, curr_chnnl);
+        getMessages(curr_chnnl);
 
         // Listening for form submission for addding new channel
         document.querySelector('#add').onclick = () => {
+            // store channel from input field and the clear input field
+            const channel  = document.querySelector('#channel').value;
+            document.querySelector('#channel').value = "";
+
+            // don't add channel and give error message
+            var x = document.querySelector("#channels");
+            for (i=0; i < x.length; i++) {
+                if (channel === x.options[i].text) {
+                    alert("The channel already exists! :/");
+                    return;
+                }
+            };
+            
             // open a AJAX request
             const request = new XMLHttpRequest();
-            const channel  = document.querySelector('#channel').value;
             request.open("POST", "/chat");
 
             // when request is recieved from server-side, laod and append data
@@ -38,9 +64,11 @@
             const data  = new FormData();   
             data.append('channel', channel);
             request.send(data);
+
+            // disable server side form submission
             return false;
         };
-        
+
         // Listen to input changes
         document.addEventListener('input', function(event) {
 
@@ -53,44 +81,49 @@
                 list.removeChild(list.firstChild);
             };
             
+            // Set current channel to slected option
+            const curr_chnnl = event.target.value;
+            localStorage.setItem(username, curr_chnnl);
+
             // Get messages 
-            const channel = event.target.value;
-            getMessages(channel);
+            getMessages(curr_chnnl);
         });
 
+        // Set socket connection
         var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
 
+        // Send message to server once message is submitted
         socket.on('connect', () => {
-            
             //TODO Disable button while form empty
 
             document.querySelector('#send').onclick = () => {
+                // store message value and then clear the input field
                 var msg = document.querySelector('#message').value;
+                document.querySelector('#message').value = "";
 
-                // need to pass channel data
-                socket.emit('send msg', {'msg': [msg, curr_chnnl] });
+                // passing channel and message data
+                socket.emit('send msg', {'msg': [msg, localStorage.getItem(username)] });
 
-                //TODO Clear form
-
+                // disable serverside submission
                 return false;
             };
         });
         
         socket.on('broadcast msg', data => {
-            
             // have a conditional to check if channel matches
             var msg = data.msg;
-            alert('receiving  broadcast')
-            alert(`Current channel: ${curr_chnnl}`)
+            var curr_chnnl = localStorage.getItem(username);
             
             // If user is on the same channel as receiving message then load the message
             if (curr_chnnl === msg[3]){
-                alert('receiving  broadcast')
+                
+                // DEBUGGIN => alert(`Channels match. Receiving broadcast. My channel: ${curr_chnnl}`)
                 var li = document.createElement('li');
                 
                 // craft message with timestamp  and everything
                 var content = `${msg[2]} | ${msg[0]}:\n ${msg[1]}`;
 
+                //Adding message to the message list
                 li.appendChild(document.createTextNode(content));
                 li.className = 'list-group-item';
                 document.querySelector('#messages').appendChild(li);
@@ -99,10 +132,8 @@
         });
     });
 
+    // Function to get messages for a particular channel
     function getMessages(channel) {
-        // Get select option value and store in local storage
-        localStorage.setItem('current_channel', channel);
-
         // Open a AJAX request to messages route
         const request = new XMLHttpRequest();
         request.open("POST", "/messages");
@@ -138,7 +169,7 @@
 <div class="row justify-content-md-center">
     <div class="col">
         <h3>Channels</h3>
-        <h5>{{username}}</h5>
+        <h5 id="username">{{username}}</h5>
         <select id="channels">
             {% for channel in channels %}
             <option value={{channel}}>{{channel}}</option>
@@ -168,15 +199,4 @@
         </form>
     </div>
 </div>
-
-
-<!-- <form action="{{ url_for('index')}}" method="POST">
-    <div class="col-3 form-group">
-        <label class="form-label">Username</label>
-        <input type="text" name="username" class="form-control-plaintext">
-    </div>
-    <div class="col-2">
-        <button type="submit" id="join" class="btn btn-primary mb-2">Join</button>
-    </div>
-</form>  -->
 {% endblock %}

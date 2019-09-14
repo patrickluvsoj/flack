@@ -38,8 +38,9 @@ def index():
 @login_required
 def chat():
     if request.method == 'POST':
-        #TODO Should be able to remove this one line
         channel = request.form.get('channel')
+
+        #TODO channel not being stored
         messages[channel] = []
 
         return jsonify({"channel": channel})
@@ -52,7 +53,6 @@ def getmessage():
     if request.method == 'POST':
         channel = request.form.get('channel')
         message_list = messages[channel]
-        print(f'Type is: {type(message_list)}\n {message_list}')
 
         return jsonify(message_list)
 
@@ -122,9 +122,14 @@ def leave():
 #5 Improvements
     - For initial login load general messages
         - Factor out message loading to function
-    - New messahes are not loading after switching channels
-    - Prevent new  messages from loading in other channels
     - Fix datetime not showing / replace channel to username
+    - Prevent new messages from loading in other channels
+    -  each user needs its own channel state
+    - message is being all stoed into general channel
+    - Prevent duplicate channels
+    - Disable button when empty. Clear form once submitted.
+    
+    
     
 #5 Get API respponse from something
 """
