@@ -69,7 +69,7 @@
             return false;
         };
 
-        // Listen to input changes
+        // Listen to chnages in channel option to load messages
         document.addEventListener('input', function(event) {
 
              // Check if it was a change in select options
@@ -94,8 +94,6 @@
 
         // Send message to server once message is submitted
         socket.on('connect', () => {
-            //TODO Disable button while form empty
-
             document.querySelector('#send').onclick = () => {
                 // store message value and then clear the input field
                 var msg = document.querySelector('#message').value;
@@ -109,6 +107,7 @@
             };
         });
         
+        // Receive braodcast message from severside and display new message
         socket.on('broadcast msg', data => {
             // have a conditional to check if channel matches
             var msg = data.msg;
@@ -124,11 +123,8 @@
                 var content = `${msg[2]} | ${msg[0]}:\n ${msg[1]}`;
 
                 //Adding message to the message list
-                li.appendChild(document.createTextNode(content));
-                li.className = 'list-group-item';
-                document.querySelector('#messages').appendChild(li);
+                renderMessage(msg, content);
             };
-            
         });
     });
 
@@ -141,24 +137,39 @@
         // Listen to AJAX request load
         request.onload = () => {
             // Parse response to JSON object
-            const messages = JSON.parse(request.responseText);
+            var messages = JSON.parse(request.responseText);
 
             // Parse array of messages and append as list item
-            for (message of messages) {
-                var msg = `${message[2]} | ${message[0]}:\n ${message[1]}`;
-                var li = document.createElement('li');
-                li.appendChild(document.createTextNode(msg));
-                li.className = 'list-group-item';
-                document.querySelector('#messages').appendChild(li);
+            for (msg of messages) {
+                var content = `${msg[2]} | ${msg[0]}:\n ${msg[1]}`;
+                renderMessage(msg, content);
             };
         };
-        
-        // Submitting form data 
+            // Submitting form data 
         const data  = new FormData();   
         data.append('channel', channel);
         request.send(data);
         return false;
-    }
+    };
+
+    function renderMessage(msg, content) {
+        var li = document.createElement('li');
+
+        if (msg[1].substring(0,13) == 'https://media') {
+            img = document.createElement('video');
+            img.src = msg[1];
+            img.width = 365;
+            img.height = 365;
+            li.appendChild(img);
+            li.className = 'list-group-item';
+            document.querySelector('#messages').appendChild(li);
+            document.querySelector('video').play();
+        } else {
+            li.appendChild(document.createTextNode(content));
+            li.className = 'list-group-item';
+            document.querySelector('#messages').appendChild(li);
+        };
+    };    
 
 </script>
 {% endblock %}
@@ -167,20 +178,32 @@
 
 {% block content %}
 <div class="row justify-content-md-center">
-    <div class="col">
-        <h3>Channels</h3>
-        <h5 id="username">{{username}}</h5>
-        <select id="channels">
-            {% for channel in channels %}
-            <option value={{channel}}>{{channel}}</option>
-            {% endfor %}
-        </select>
-        <form id="form">
-            <div class="form-group col-8">
-                <input type=text id="channel" placeholder="Add new channel" class="form-control-plaintext">
-                <input type="submit" id="add" value="Add" class="btn btn-primary mb-2">
+    <div class="col-4">
+        <div class="card">
+            <div id="username" class="card-header">
+                {{username}}
             </div>
-        </form>
+            <div class="card-body">
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <label class="input-group-text"># Channels</label>
+                    </div>
+                    <select id="channels" class="custom-select">
+                        {% for channel in channels %}
+                        <option value={{channel}}>{{channel}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="card-body">
+                <form id="form">
+                    <div class="form-group col-8">
+                        <input type=text id="channel" placeholder="Add new channel" class="form-control-plaintext">
+                        <input type="submit" id="add" value="Add" class="btn btn-primary mb-2">
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
     <div class="col-8">
         <div class="card">
@@ -190,13 +213,14 @@
             <ul class="list-group list-group-flush" id="messages">
                 <!-- Add stuff with AJAX query -->
             </ul>
-        </div><br>
-        <form>
-            <div class="form-group col-8">
-                <input type='text' id='message' placeholder='say something :)' class="form-control-plaintext">
-                <input type='submit' id='send' value='Send' class='btn btn-primary mb-2'>
-            </div>
-        </form>
+            <br>
+            <form>
+                <div class="form-group col-8">
+                    <input type='text' id='message' placeholder='say something :)' class="form-control-plaintext">
+                    <input type='submit' id='send' value='Send' class='btn btn-primary mb-2'>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}

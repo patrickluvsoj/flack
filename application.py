@@ -1,4 +1,5 @@
 import os
+import requests
 from datetime import datetime
 
 from flask import Flask, request, render_template, session, redirect, url_for, jsonify
@@ -8,8 +9,10 @@ from helper import login_required
 
 app = Flask(__name__)
 app.config.from_envvar('YOURAPPLICATION_SETTINGS')
-# Session(app)
 socketio = SocketIO(app)
+
+#Set Giphy API key from environemnt
+giphy_key = os.environ['GIPHY']
 
 #GLOBAL VARIABLES
 user_list = []
@@ -67,9 +70,23 @@ def send(data):
     username = session['username']
     body = msg[0]
     curr_chnnl = msg[1]
-    messages[curr_chnnl].append([username, body, time])
-    broadcast = [username, body, time, curr_chnnl]
+    
+    # check if message is a giphy command
+    if body[0:6] == "/giphy":
+        payload = {'api_key': giphy_key, 's': body[8:], 'weirdness': 6}
+        r = requests.get('http://api.giphy.com/v1/gifs/translate?', params=payload)
+        giphyObj = r.json()
+        body = giphyObj['data']['images']['downsized_small']['mp4']
+    
+    # Check legnth of messages and remove oldest message
+    if len(messages[curr_chnnl]) >= 100:
+        messages[curr_chnnl].pop(0)
 
+    # Store message into global variable
+    messages[curr_chnnl].append([username, body, time])
+    
+    # create broadcast message and  emit
+    broadcast = [username, body, time, curr_chnnl]
     emit('broadcast msg', {'msg': broadcast}, broadcast=True)
 
 @app.route("/leave")
@@ -130,6 +147,12 @@ def leave():
     - Disable button when empty. Clear form once submitted.
     
     
-    
 #5 Get API respponse from something
+    - enable image render: https://stackoverflow.com/questions/30911578/javascript-render-an-image-from-a-link
+        - create XML request
+        - Parse Object
+        - Render URL as image
+        - Append to list
+    - Pop messages over 100
+    - prepare gitignore file
 """
